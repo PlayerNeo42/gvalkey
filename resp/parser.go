@@ -28,12 +28,20 @@ func (p *Parser) Parse() (any, error) {
 	}
 
 	switch line[0] {
+	// RESP2
 	case '*': // array
 		return p.parseArray(line)
 	case '$': // bulk string
 		return p.parseBulkString(line)
+	case '+': // simple string
+		return p.parseSimpleString(line)
+	case ':': // integer
+		return p.parseInteger(line)
+	// RESP3
+	case '_', ',', '#', '!', '=', '(', '%', '~', '|', '>': // nil
+		return nil, fmt.Errorf("RESP3 type not supported yet: %q", line)
 	default:
-		return nil, fmt.Errorf("unsupported RESP type: %s", string(line))
+		return nil, fmt.Errorf("unsupported RESP type: %q", line)
 	}
 }
 
@@ -48,7 +56,7 @@ func (p *Parser) readLine() ([]byte, error) {
 }
 
 // parseArray parses an array
-func (p *Parser) parseArray(line []byte) ([]string, error) {
+func (p *Parser) parseArray(line []byte) (Array, error) {
 	// line example: *3
 	count, err := strconv.Atoi(string(line[1:]))
 	if err != nil {
@@ -57,10 +65,10 @@ func (p *Parser) parseArray(line []byte) ([]string, error) {
 
 	// Redis's empty array or null array
 	if count <= 0 {
-		return []string{}, nil
+		return Array{}, nil
 	}
 
-	result := make([]string, 0, count)
+	result := make(Array, 0, count)
 	for range count {
 		// recursively call Parse to parse each element in the array
 		// here we simplify the processing, assuming that the array elements are all Bulk String
@@ -69,18 +77,14 @@ func (p *Parser) parseArray(line []byte) ([]string, error) {
 			return nil, err
 		}
 
-		bulk, ok := val.(string)
-		if !ok {
-			return nil, fmt.Errorf("array element is not a bulk string")
-		}
-		result = append(result, bulk)
+		result = append(result, val)
 	}
 
 	return result, nil
 }
 
 // parseBulkString parses a bulk string
-func (p *Parser) parseBulkString(line []byte) (string, error) {
+func (p *Parser) parseBulkString(line []byte) (BulkString, error) {
 	// line example: $5
 	length, err := strconv.Atoi(string(line[1:]))
 	if err != nil {
@@ -99,5 +103,19 @@ func (p *Parser) parseBulkString(line []byte) (string, error) {
 		return "", err
 	}
 
-	return string(data[:length]), nil
+	return BulkString(data[:length]), nil
+}
+
+func (p *Parser) parseSimpleString(line []byte) (SimpleString, error) {
+	// line example: +OK
+	return SimpleString(line[1:]), nil
+}
+
+func (p *Parser) parseInteger(line []byte) (Integer, error) {
+	// line example: :100
+	num, err := strconv.ParseInt(string(line[1:]), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse integer failed: %v", err)
+	}
+	return Integer(num), nil
 }
