@@ -76,6 +76,7 @@ changelog:
     exclude:
       - "^doc:"
       - "^test:"
+      - "^ci:"
 # release:
 #   footer: >-
 
