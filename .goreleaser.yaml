@@ -7,7 +7,6 @@ before:
 
 builds:
   - main: ./cmd/server
-    id: "gvalkey"
     env:
       - CGO_ENABLED=0
     goos:
@@ -17,6 +16,11 @@ builds:
     goarch:
       - amd64
       - arm64
+    flags:
+      - -trimpath
+      - -mod=readonly
+    ldflags:
+      - -s -w
 
 archives:
   - formats: [tar.gz]
@@ -26,45 +30,6 @@ archives:
       - goos: windows
         formats: [zip]
 
-# dockers:
-#   - image_templates:
-#       - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}:{{ .Tag }}-amd64"
-#     goos: linux
-#     goarch: amd64
-#     dockerfile: Dockerfile
-#     use: buildx
-#     build_flag_templates:
-#       - "--platform=linux/amd64"
-#       - "--label=org.opencontainers.image.title={{ .ProjectName }}"
-#       - "--label=org.opencontainers.image.source={{ .GitURL }}"
-#       - "--label=org.opencontainers.image.version={{ .Version }}"
-#       - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
-#       - "--label=org.opencontainers.image.created={{ .Date }}"
-
-#   - image_templates:
-#       - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}:{{ .Tag }}-arm64"
-#     goos: linux
-#     goarch: arm64
-#     dockerfile: Dockerfile
-#     use: buildx
-#     build_flag_templates:
-#       - "--platform=linux/arm64"
-#       - "--label=org.opencontainers.image.title={{ .ProjectName }}"
-#       - "--label=org.opencontainers.image.source={{ .GitURL }}"
-#       - "--label=org.opencontainers.image.version={{ .Version }}"
-#       - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
-#       - "--label=org.opencontainers.image.created={{ .Date }}"
-
-# docker_manifests:
-#   - name_template: "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}:{{ .Tag }}"
-#     image_templates:
-#       - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}:{{ .Tag }}-amd64"
-#       - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}:{{ .Tag }}-arm64"
-#   - name_template: "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}:latest"
-#     image_templates:
-#       - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}:{{ .Tag }}-amd64"
-#       - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}:{{ .Tag }}-arm64"
-
 changelog:
   sort: asc
   filters:
@@ -72,9 +37,3 @@ changelog:
       - "^doc:"
       - "^test:"
       - "^ci:"
-# release:
-#   footer: >-
-
-#     ---
-
-#     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
