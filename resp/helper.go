@@ -1,11 +1,14 @@
 package resp
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 func peekNextInteger(args Array, index int) (int64, error) {
 	nextIndex := index + 1
 	if nextIndex >= len(args) {
-		return 0, fmt.Errorf("argument required")
+		return 0, errors.New("argument required")
 	}
 	next, ok := args[nextIndex].(Integer)
 	if !ok {

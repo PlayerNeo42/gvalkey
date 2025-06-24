@@ -1,7 +1,6 @@
 package server
 
 import (
-	"io"
 	"log/slog"
 	"net"
 
@@ -28,7 +27,7 @@ func NewServer(addr string, opts ...Option) *Server {
 
 	// disable logging if not set
 	if s.logger == nil {
-		s.logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+		s.logger = slog.New(slog.DiscardHandler)
 	}
 
 	return s

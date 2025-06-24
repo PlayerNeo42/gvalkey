@@ -60,7 +60,7 @@ func (p *Parser) parseArray(line []byte) (Array, error) {
 	// line example: *3
 	count, err := strconv.Atoi(string(line[1:]))
 	if err != nil {
-		return nil, fmt.Errorf("parse array length failed: %v", err)
+		return nil, fmt.Errorf("parse array length failed: %w", err)
 	}
 
 	// Redis's empty array or null array
@@ -88,7 +88,7 @@ func (p *Parser) parseBulkString(line []byte) (BulkString, error) {
 	// line example: $5
 	length, err := strconv.Atoi(string(line[1:]))
 	if err != nil {
-		return "", fmt.Errorf("parse bulk string length failed: %v", err)
+		return "", fmt.Errorf("parse bulk string length failed: %w", err)
 	}
 
 	// Redis's null bulk string
@@ -115,7 +115,7 @@ func (p *Parser) parseInteger(line []byte) (Integer, error) {
 	// line example: :100
 	num, err := strconv.ParseInt(string(line[1:]), 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("parse integer failed: %v", err)
+		return 0, fmt.Errorf("parse integer failed: %w", err)
 	}
 	return Integer(num), nil
 }

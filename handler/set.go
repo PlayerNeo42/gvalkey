@@ -5,14 +5,22 @@ import (
 )
 
 func (h *Handler) handleSet(args resp.Array) (resp.Marshaler, error) {
-	key, value, ex, px, nx, xx, get, err := resp.ParseSetArgs(args)
+	parsedArgs, err := resp.ParseSetArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	oldValue, success := h.store.Set(string(key.MarshalBinary()), value, ex, px, nx, xx, get)
+	oldValue, success := h.store.Set(
+		string(parsedArgs.Key.MarshalBinary()),
+		parsedArgs.Value,
+		parsedArgs.EX,
+		parsedArgs.PX,
+		parsedArgs.NX,
+		parsedArgs.XX,
+		parsedArgs.Get,
+	)
 
-	if get {
+	if parsedArgs.Get {
 		if success && oldValue != nil {
 			if val, ok := oldValue.(resp.Marshaler); ok {
 				return val, nil
@@ -24,7 +32,7 @@ func (h *Handler) handleSet(args resp.Array) (resp.Marshaler, error) {
 	}
 
 	// 对于 NX 和 XX 选项，如果操作失败，返回 NULL
-	if (nx || xx) && !success {
+	if (parsedArgs.NX || parsedArgs.XX) && !success {
 		return resp.NULL, nil
 	}
 

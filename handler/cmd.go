@@ -40,5 +40,9 @@ func (c *CommandTable) Get(name resp.BulkString) (*Command, bool) {
 	if !ok {
 		return nil, false
 	}
-	return val.(*Command), true
+	cmd, ok := val.(*Command)
+	if !ok {
+		panic(fmt.Sprintf("command %s is not a *Command", name.Upper()))
+	}
+	return cmd, true
 }

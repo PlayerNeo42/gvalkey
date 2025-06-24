@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/PlayerNeo42/gvalkey/resp"
@@ -9,14 +10,14 @@ import (
 func (h *Handler) dispatch(args resp.Array) (resp.Marshaler, error) {
 	val, ok := args[0].(resp.BulkString)
 	if !ok {
-		return resp.NULL, fmt.Errorf("command must be a bulk string")
+		return resp.NULL, errors.New("command must be a bulk string")
 	}
 
 	var cmd *Command
 
 	cmd, ok = h.commandTable.Get(val.Upper())
 	if !ok {
-		return nil, fmt.Errorf("unsupported command")
+		return nil, errors.New("unsupported command")
 	}
 
 	// positive value means fixed number of arguments

@@ -45,12 +45,12 @@ func (s *Store) Close() {
 	close(s.stopCleanup)
 }
 
-func (s *Store) Set(key string, value any, ex, px int64, nx, xx, get bool) (any, bool) {
+func (s *Store) Set(key string, value any, ex, px *int64, nx, xx, get bool) (any, bool) {
 	var expiration int64
-	if ex > 0 {
-		expiration = time.Now().UnixMilli() + ex*1000
-	} else if px > 0 {
-		expiration = time.Now().UnixMilli() + px
+	if ex != nil {
+		expiration = time.Now().UnixMilli() + *ex*1000
+	} else if px != nil {
+		expiration = time.Now().UnixMilli() + *px
 	}
 
 	newItem := &storeItem{

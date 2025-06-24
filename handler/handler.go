@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,9 +17,9 @@ type Handler struct {
 	commandTable *CommandTable
 }
 
-func New(logger *slog.Logger, store *store.Store) *Handler {
+func New(logger *slog.Logger, s *store.Store) *Handler {
 	commandTable := NewCommandTable()
-	h := &Handler{logger: logger, store: store, commandTable: commandTable}
+	h := &Handler{logger: logger, store: s, commandTable: commandTable}
 
 	commandTable.MustRegister(&Command{resp.GET, 2, h.handleGet})
 	commandTable.MustRegister(&Command{resp.SET, -3, h.handleSet})
@@ -36,7 +37,7 @@ func (h *Handler) Serve(conn net.Conn) {
 	for {
 		value, err := parser.Parse()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				h.logger.Info("client closed connection", "remote_addr", conn.RemoteAddr().String())
 				return
 			}
@@ -57,7 +58,7 @@ func (h *Handler) Serve(conn net.Conn) {
 			response, commandErr = h.dispatch(v)
 		default:
 			h.logger.Error("unsupported command type", "remote_addr", conn.RemoteAddr().String(), "command", v)
-			commandErr = fmt.Errorf("command must be an array")
+			commandErr = errors.New("command must be an array")
 		}
 
 		if commandErr != nil {
