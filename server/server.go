@@ -1,25 +1,36 @@
 package server
 
 import (
+	"io"
 	"log/slog"
 	"net"
 
 	"github.com/PlayerNeo42/gvalkey/handler"
+	"github.com/PlayerNeo42/gvalkey/store"
 )
 
 type Server struct {
-	addr   string
-	logger *slog.Logger
+	addr    string
+	logger  *slog.Logger
+	store   *store.Store
+	handler *handler.Handler
 }
 
 func NewServer(addr string, opts ...Option) *Server {
 	s := &Server{
-		addr:   addr,
-		logger: slog.Default(),
+		addr:  addr,
+		store: store.NewStore(),
 	}
+	s.handler = handler.New(s.logger, s.store)
 	for _, opt := range opts {
 		opt(s)
 	}
+
+	// disable logging if not set
+	if s.logger == nil {
+		s.logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+
 	return s
 }
 
@@ -39,7 +50,6 @@ func (s *Server) ListenAndServe() error {
 		}
 
 		s.logger.Info("new connection", "remote_addr", conn.RemoteAddr().String())
-		handler := handler.New(conn, s.logger)
-		go handler.Serve()
+		go s.handler.Serve(conn)
 	}
 }

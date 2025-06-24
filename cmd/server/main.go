@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	logger := log.New(slog.LevelDebug)
+	logger := log.New(slog.LevelInfo)
 
 	server := server.NewServer(":6379", server.WithLogger(logger))
 	panic(server.ListenAndServe())
