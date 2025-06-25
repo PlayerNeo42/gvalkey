@@ -41,7 +41,32 @@ GValkey is a lightweight, Redis-compatible in-memory cache written in Go. It imp
 
 ### Prerequisites
 
-- Go 1.24.3 or higher
+- Go 1.24.3 or higher (for building from source)
+- Docker (for running with Docker)
+
+### Using Docker (Recommended)
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/playerneo42/gvalkey:latest
+
+# Run GValkey container
+docker run -d \
+  --name gvalkey \
+  -p 6379:6379 \
+  ghcr.io/playerneo42/gvalkey:latest
+```
+
+### Using Docker Compose
+
+```yaml
+services:
+  gvalkey:
+    image: ghcr.io/playerneo42/gvalkey:latest
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+```
 
 ### Building from Source
 
@@ -54,45 +79,6 @@ cd gvalkey
 go build -o gvalkey ./cmd/server
 
 # Run the server
-./gvalkey
-```
-
-## 🔧 Usage
-
-### Starting the Server
-
-```bash
-# Start GValkey server on default port (6379)
-./gvalkey
-```
-
-The server will start listening on `localhost:6379` by default.
-
-## ⚙️ Configuration
-
-GValkey can be configured using environment variables. All configuration options have sensible defaults.
-
-### Environment Variables
-
-| Variable | Description | Default | Valid Values |
-|----------|-------------|---------|--------------|
-| `GVK_HOST` | Server bind address | `0.0.0.0` | Valid hostname or IP address |
-| `GVK_PORT` | Server listen port | `6379` | 1-65535 |
-| `GVK_LOG_LEVEL` | Logging level | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR` |
-
-### Configuration Examples
-
-```bash
-# Start server on custom port
-GVK_PORT=8080 ./gvalkey
-
-# Start server with debug logging
-GVK_LOG_LEVEL=DEBUG ./gvalkey
-
-# Start server on specific interface
-export GVK_HOST=127.0.0.1
-export GVK_PORT=6380
-export GVK_LOG_LEVEL=WARN
 ./gvalkey
 ```
 
@@ -112,6 +98,19 @@ OK
 127.0.0.1:6379> DEL mykey
 (integer) 1
 ```
+
+## ⚙️ Configuration
+
+GValkey can be configured using environment variables. All configuration options have sensible defaults.
+
+### Environment Variables
+
+| Variable | Description | Default | Valid Values |
+|----------|-------------|---------|--------------|
+| `GVK_HOST` | Server bind address | `0.0.0.0` | Valid hostname or IP address |
+| `GVK_PORT` | Server listen port | `6379` | 1-65535 |
+| `GVK_LOG_LEVEL` | Logging level | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR` |
+
 
 ## 📝 Supported Commands
 
