@@ -40,8 +40,5 @@ func validateConfig(c *Config) error {
 		return name
 	})
 
-	if err := v.Struct(c); err != nil {
-		return err
-	}
-	return nil
+	return v.Struct(c)
 }
