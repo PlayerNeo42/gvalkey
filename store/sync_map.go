@@ -1,0 +1,170 @@
+package store
+
+import (
+	"sync"
+	"time"
+)
+
+type syncMapItem struct {
+	value      any
+	expiration int64 // Expiration timestamp, 0 means never expire
+}
+
+func (item *syncMapItem) isExpired() bool {
+	if item.expiration == 0 {
+		return false
+	}
+	return time.Now().Unix() > item.expiration
+}
+
+// SyncMap is a thread-safe in-memory key-value store implementation using Go's sync.Map.
+type SyncMap struct {
+	store       sync.Map
+	stopCleanup chan struct{} // channel for stopping the cleanup goroutine
+}
+
+func NewSyncMap() *SyncMap {
+	ms := &SyncMap{
+		stopCleanup: make(chan struct{}),
+	}
+
+	go ms.cleanupExpiredKeys()
+
+	return ms
+}
+
+// Background task to clean up expired keys
+
+// TODO: reduce cognitive complexity
+//
+//nolint:revive
+func (s *SyncMap) Set(key string, value any, ex, px *int64, nx, xx, get bool) (any, bool) {
+	var expiration int64
+	if ex != nil {
+		expiration = time.Now().UnixMilli() + *ex*1000
+	} else if px != nil {
+		expiration = time.Now().UnixMilli() + *px
+	}
+
+	newItem := &syncMapItem{
+		value:      value,
+		expiration: expiration,
+	}
+
+	// If we need to return the old value, get it first
+	var oldValue any
+	var hasOldValue bool
+	if get {
+		if existing, exists := s.store.Load(key); exists {
+			if item, ok := existing.(*syncMapItem); ok && !item.isExpired() {
+				oldValue = item.value
+				hasOldValue = true
+			}
+		}
+	}
+
+	// Handle NX (Not eXists) option: only set if key doesn't exist
+	if nx {
+		if existing, exists := s.store.Load(key); exists {
+			if item, ok := existing.(*syncMapItem); ok && !item.isExpired() {
+				// Key exists and is not expired, cannot set
+				if get {
+					return oldValue, hasOldValue
+				}
+				return nil, false
+			}
+		}
+		// Key doesn't exist or is expired, can set
+		s.store.Store(key, newItem)
+		if get {
+			return oldValue, hasOldValue
+		}
+		return nil, true
+	}
+
+	// Handle XX (eXists) option: only set if key already exists
+	if xx {
+		if existing, exists := s.store.Load(key); exists {
+			if item, ok := existing.(*syncMapItem); ok && !item.isExpired() {
+				// Key exists and is not expired, can set
+				s.store.Store(key, newItem)
+				if get {
+					return oldValue, hasOldValue
+				}
+				return nil, true
+			}
+		}
+		// Key doesn't exist or is expired, cannot set
+		if get {
+			return oldValue, hasOldValue
+		}
+		return nil, false
+	}
+
+	// Normal set: unconditional set
+	s.store.Store(key, newItem)
+	if get {
+		return oldValue, hasOldValue
+	}
+	return nil, true
+}
+
+func (s *SyncMap) Get(key string) (any, bool) {
+	value, exists := s.store.Load(key)
+	if !exists {
+		return nil, false
+	}
+
+	item, ok := value.(*syncMapItem)
+	if !ok {
+		return nil, false
+	}
+
+	// Check if expired
+	if item.isExpired() {
+		s.store.Delete(key)
+		return nil, false
+	}
+
+	return item.value, true
+}
+
+func (s *SyncMap) Del(key string) bool {
+	// Check if key exists and is not expired
+	if existing, exists := s.store.Load(key); exists {
+		if item, ok := existing.(*syncMapItem); ok {
+			if item.isExpired() {
+				// Expired key is deleted directly, but return false (logically doesn't exist)
+				s.store.Delete(key)
+				return false
+			}
+		}
+	}
+
+	_, existed := s.store.LoadAndDelete(key)
+	return existed
+}
+
+func (s *SyncMap) cleanupExpiredKeys() {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			s.store.Range(func(key, value any) bool {
+				if item, ok := value.(*syncMapItem); ok && item.isExpired() {
+					s.store.Delete(key)
+				}
+				return true
+			})
+		case <-s.stopCleanup:
+			return
+		}
+	}
+}
+
+// Close stops the cleanup goroutine
+func (s *SyncMap) Close() {
+	close(s.stopCleanup)
+}

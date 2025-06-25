@@ -11,14 +11,14 @@ import (
 type Server struct {
 	addr    string
 	logger  *slog.Logger
-	store   *store.Store
+	store   *store.SyncMap
 	handler *handler.Handler
 }
 
 func NewServer(addr string, opts ...Option) *Server {
 	s := &Server{
 		addr:   addr,
-		store:  store.NewStore(),
+		store:  store.NewSyncMap(),
 		logger: slog.New(slog.DiscardHandler),
 	}
 	for _, opt := range opts {
