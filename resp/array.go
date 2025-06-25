@@ -1,14 +1,17 @@
 package resp
 
-import "fmt"
+import (
+	"strconv"
+)
 
 type Array []any
 
 func (a Array) MarshalRESP() []byte {
 	buf := make([]byte, 0, 1024)
 
-	length := len(a)
-	buf = fmt.Appendf(buf, "*%d\r\n", length)
+	buf = append(buf, '*')
+	buf = strconv.AppendInt(buf, int64(len(a)), 10)
+	buf = append(buf, '\r', '\n')
 
 	for _, v := range a {
 		marshaler, ok := v.(Marshaler)
