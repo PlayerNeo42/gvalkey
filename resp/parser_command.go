@@ -86,7 +86,7 @@ func ParseSetArgs(args Array) (*SetArgs, error) {
 }
 
 func ParseDelArgs(args Array) ([]BinaryMarshaler, error) {
-	keys := make([]BinaryMarshaler, 0, len(args)-1)
+	keys := make([]BinaryMarshaler, len(args)-1)
 	for i := 1; i < len(args); i++ {
 		key, ok := args[i].(BinaryMarshaler)
 		if !ok {
