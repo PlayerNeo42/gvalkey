@@ -1,0 +1,11 @@
+services:
+  gvalkey:
+    image: ghcr.io/playerneo42/gvalkey:latest
+    ports:
+      - "6379:6379"
+    # or use env_file if you like
+    environment:
+      - GVK_HOST=0.0.0.0
+      - GVK_PORT=6379
+      - GVK_LOG_LEVEL=INFO
+    restart: unless-stopped
