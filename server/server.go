@@ -17,18 +17,15 @@ type Server struct {
 
 func NewServer(addr string, opts ...Option) *Server {
 	s := &Server{
-		addr:  addr,
-		store: store.NewStore(),
+		addr:   addr,
+		store:  store.NewStore(),
+		logger: slog.New(slog.DiscardHandler),
 	}
-	s.handler = handler.New(s.logger, s.store)
 	for _, opt := range opts {
 		opt(s)
 	}
 
-	// disable logging if not set
-	if s.logger == nil {
-		s.logger = slog.New(slog.DiscardHandler)
-	}
+	s.handler = handler.New(s.logger, s.store)
 
 	return s
 }
