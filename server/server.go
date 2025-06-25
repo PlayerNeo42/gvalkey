@@ -11,7 +11,7 @@ import (
 type Server struct {
 	addr    string
 	logger  *slog.Logger
-	store   *store.SyncMap
+	store   store.Store
 	handler *handler.Handler
 }
 

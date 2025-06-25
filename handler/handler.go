@@ -13,11 +13,11 @@ import (
 
 type Handler struct {
 	logger       *slog.Logger
-	store        *store.SyncMap
+	store        store.Store
 	commandTable *CommandTable
 }
 
-func New(logger *slog.Logger, s *store.SyncMap) *Handler {
+func New(logger *slog.Logger, s store.Store) *Handler {
 	commandTable := NewCommandTable()
 	h := &Handler{logger: logger, store: s, commandTable: commandTable}
 
