@@ -45,6 +45,9 @@ func (s *Store) Close() {
 	close(s.stopCleanup)
 }
 
+// TODO: reduce cognitive complexity
+//
+//nolint:revive
 func (s *Store) Set(key string, value any, ex, px *int64, nx, xx, get bool) (any, bool) {
 	var expiration int64
 	if ex != nil {
