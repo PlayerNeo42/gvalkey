@@ -14,13 +14,13 @@
 
 ## 📋 Table of Contents
 
-- [About](#about)
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Supported Commands](#supported-commands)
-- [Development](#development)
-- [License](#license)
+- [About](#-about)
+- [Features](#-features)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Supported Commands](#-supported-commands)
+- [Development](#-development)
+- [License](#-license)
 
 ## 🚀 About
 
