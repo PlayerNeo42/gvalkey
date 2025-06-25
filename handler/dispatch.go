@@ -24,7 +24,7 @@ func (h *Handler) dispatch(args resp.Array) (resp.Marshaler, error) {
 	// negative value means at least that number of arguments
 	if (cmd.Args > 0 && len(args) != cmd.Args) ||
 		(cmd.Args < 0 && len(args) < -cmd.Args) {
-		return nil, fmt.Errorf("ERR wrong number of arguments for '%s' command", cmd.Name)
+		return nil, fmt.Errorf("wrong number of arguments for '%s' command", cmd.Name)
 	}
 
 	return cmd.Handler(args)
