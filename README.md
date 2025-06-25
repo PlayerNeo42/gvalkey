@@ -108,10 +108,11 @@ OK
 go test ./...
 ```
 
-### Code Formatting
+### Code Formatting && Linting
 
 ```bash
-go fmt ./...
+golangci-lint fmt 
+golangci-lint run --fix
 ```
 
 ## 📄 License
