@@ -18,6 +18,7 @@
 - [Features](#-features)
 - [Installation](#-installation)
 - [Usage](#-usage)
+- [Configuration](#-configuration)
 - [Supported Commands](#-supported-commands)
 - [Development](#-development)
 - [License](#-license)
@@ -66,6 +67,34 @@ go build -o gvalkey ./cmd/server
 ```
 
 The server will start listening on `localhost:6379` by default.
+
+## ⚙️ Configuration
+
+GValkey can be configured using environment variables. All configuration options have sensible defaults.
+
+### Environment Variables
+
+| Variable | Description | Default | Valid Values |
+|----------|-------------|---------|--------------|
+| `GVK_HOST` | Server bind address | `0.0.0.0` | Valid hostname or IP address |
+| `GVK_PORT` | Server listen port | `6379` | 1-65535 |
+| `GVK_LOG_LEVEL` | Logging level | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR` |
+
+### Configuration Examples
+
+```bash
+# Start server on custom port
+GVK_PORT=8080 ./gvalkey
+
+# Start server with debug logging
+GVK_LOG_LEVEL=DEBUG ./gvalkey
+
+# Start server on specific interface
+export GVK_HOST=127.0.0.1
+export GVK_PORT=6380
+export GVK_LOG_LEVEL=WARN
+./gvalkey
+```
 
 ### Connecting with Redis CLI
 
