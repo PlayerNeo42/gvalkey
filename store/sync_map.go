@@ -3,6 +3,8 @@ package store
 import (
 	"sync"
 	"time"
+
+	"github.com/PlayerNeo42/gvalkey/resp"
 )
 
 type syncMapItem struct {
@@ -14,7 +16,7 @@ func (item *syncMapItem) isExpired() bool {
 	if item.expiration == 0 {
 		return false
 	}
-	return time.Now().Unix() > item.expiration
+	return time.Now().UnixMilli() > item.expiration
 }
 
 // SyncMap is a thread-safe in-memory key-value store implementation using Go's sync.Map.
@@ -33,79 +35,55 @@ func NewSyncMap() *SyncMap {
 	return ms
 }
 
-// Background task to clean up expired keys
+func (s *SyncMap) Set(args resp.SetArgs) (any, bool) {
+	key := args.Key.MarshalBinary()
 
-// TODO: reduce cognitive complexity
-//
-//nolint:revive
-func (s *SyncMap) Set(key string, value any, ex, px *int64, nx, xx, get bool) (any, bool) {
-	var expiration int64
-	if ex != nil {
-		expiration = time.Now().UnixMilli() + *ex*1000
-	} else if px != nil {
-		expiration = time.Now().UnixMilli() + *px
-	}
+	// load the existing item first to check its status.
+	existing, loaded := s.store.Load(string(key))
 
-	newItem := &syncMapItem{
-		value:      value,
-		expiration: expiration,
-	}
-
-	// If we need to return the old value, get it first
-	var oldValue any
-	var hasOldValue bool
-	if get {
-		if existing, exists := s.store.Load(key); exists {
-			if item, ok := existing.(*syncMapItem); ok && !item.isExpired() {
-				oldValue = item.value
-				hasOldValue = true
-			}
+	var oldItem *syncMapItem
+	if loaded {
+		var ok bool
+		oldItem, ok = existing.(*syncMapItem)
+		if !ok {
+			// this should not happen in normal operation, but as a safeguard, treat it as not loaded.
+			loaded = false
+		} else if oldItem.isExpired() {
+			// treat expired keys as not existing for the purpose of nx/xx logic.
+			loaded = false
 		}
 	}
 
-	// Handle NX (Not eXists) option: only set if key doesn't exist
-	if nx {
-		if existing, exists := s.store.Load(key); exists {
-			if item, ok := existing.(*syncMapItem); ok && !item.isExpired() {
-				// Key exists and is not expired, cannot set
-				if get {
-					return oldValue, hasOldValue
-				}
-				return nil, false
-			}
+	// handle conditional set flags (NX, XX).
+	// we should not set the key if:
+	// 1. the key exists and NX is true, or
+	// 2. the key doesn't exist and XX is true.
+	shouldNotSet := (args.NX && loaded) || (args.XX && !loaded)
+	if shouldNotSet {
+		if args.Get && loaded {
+			// for NX, if key exists, we return the old value.
+			return oldItem.value, true
 		}
-		// Key doesn't exist or is expired, can set
-		s.store.Store(key, newItem)
-		if get {
-			return oldValue, hasOldValue
-		}
-		return nil, true
-	}
-
-	// Handle XX (eXists) option: only set if key already exists
-	if xx {
-		if existing, exists := s.store.Load(key); exists {
-			if item, ok := existing.(*syncMapItem); ok && !item.isExpired() {
-				// Key exists and is not expired, can set
-				s.store.Store(key, newItem)
-				if get {
-					return oldValue, hasOldValue
-				}
-				return nil, true
-			}
-		}
-		// Key doesn't exist or is expired, cannot set
-		if get {
-			return oldValue, hasOldValue
-		}
+		// for XX, if key doesn't exist, there is no old value.
+		// for NX, if key exists, we don't set and return success=false.
 		return nil, false
 	}
 
-	// Normal set: unconditional set
-	s.store.Store(key, newItem)
-	if get {
-		return oldValue, hasOldValue
+	// If we proceed, it means we will perform a set operation.
+	newItem := &syncMapItem{
+		value:      args.Value,
+		expiration: args.Expire,
 	}
+	s.store.Store(string(key), newItem)
+
+	if args.Get {
+		if loaded { // 'loaded' is true only if the key existed and was not expired.
+			return oldItem.value, true
+		}
+		// If key didn't exist or was expired, there's no old value to return, but the set was successful.
+		return nil, true
+	}
+
 	return nil, true
 }
 
@@ -130,19 +108,20 @@ func (s *SyncMap) Get(key string) (any, bool) {
 }
 
 func (s *SyncMap) Del(key string) bool {
-	// Check if key exists and is not expired
-	if existing, exists := s.store.Load(key); exists {
-		if item, ok := existing.(*syncMapItem); ok {
-			if item.isExpired() {
-				// Expired key is deleted directly, but return false (logically doesn't exist)
-				s.store.Delete(key)
-				return false
-			}
-		}
+	existing, existed := s.store.LoadAndDelete(key)
+	if !existed {
+		return false
 	}
 
-	_, existed := s.store.LoadAndDelete(key)
-	return existed
+	item, ok := existing.(*syncMapItem)
+	if !ok {
+		// The key existed but was not a syncMapItem.
+		// This is unexpected, but it was deleted, so we return true.
+		return true
+	}
+
+	// Return false if the key was expired (logically didn't exist), true otherwise.
+	return !item.isExpired()
 }
 
 func (s *SyncMap) cleanupExpiredKeys() {
