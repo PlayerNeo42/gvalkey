@@ -7,26 +7,26 @@ import (
 	"github.com/PlayerNeo42/gvalkey/resp"
 )
 
-type syncMapItem struct {
+type naiveStoreItem struct {
 	value      any
 	expiration int64 // Expiration timestamp, 0 means never expire
 }
 
-func (item *syncMapItem) isExpired() bool {
+func (item *naiveStoreItem) isExpired() bool {
 	if item.expiration == 0 {
 		return false
 	}
 	return time.Now().UnixMilli() > item.expiration
 }
 
-// SyncMap is a thread-safe in-memory key-value store implementation using Go's sync.Map.
-type SyncMap struct {
+// NaiveStore is a thread-safe in-memory key-value store implementation using Go's sync.Map.
+type NaiveStore struct {
 	store       sync.Map
 	stopCleanup chan struct{} // channel for stopping the cleanup goroutine
 }
 
-func NewSyncMap() *SyncMap {
-	ms := &SyncMap{
+func NewNaiveStore() *NaiveStore {
+	ms := &NaiveStore{
 		stopCleanup: make(chan struct{}),
 	}
 
@@ -35,16 +35,16 @@ func NewSyncMap() *SyncMap {
 	return ms
 }
 
-func (s *SyncMap) Set(args resp.SetArgs) (any, bool) {
+func (s *NaiveStore) Set(args resp.SetArgs) (any, bool) {
 	key := args.Key.MarshalBinary()
 
 	// load the existing item first to check its status.
 	existing, loaded := s.store.Load(string(key))
 
-	var oldItem *syncMapItem
+	var oldItem *naiveStoreItem
 	if loaded {
 		var ok bool
-		oldItem, ok = existing.(*syncMapItem)
+		oldItem, ok = existing.(*naiveStoreItem)
 		if !ok {
 			// this should not happen in normal operation, but as a safeguard, treat it as not loaded.
 			loaded = false
@@ -70,7 +70,7 @@ func (s *SyncMap) Set(args resp.SetArgs) (any, bool) {
 	}
 
 	// If we proceed, it means we will perform a set operation.
-	newItem := &syncMapItem{
+	newItem := &naiveStoreItem{
 		value:      args.Value,
 		expiration: args.Expire,
 	}
@@ -87,13 +87,13 @@ func (s *SyncMap) Set(args resp.SetArgs) (any, bool) {
 	return nil, true
 }
 
-func (s *SyncMap) Get(key string) (any, bool) {
+func (s *NaiveStore) Get(key string) (any, bool) {
 	value, exists := s.store.Load(key)
 	if !exists {
 		return nil, false
 	}
 
-	item, ok := value.(*syncMapItem)
+	item, ok := value.(*naiveStoreItem)
 	if !ok {
 		return nil, false
 	}
@@ -107,16 +107,16 @@ func (s *SyncMap) Get(key string) (any, bool) {
 	return item.value, true
 }
 
-func (s *SyncMap) Del(key string) bool {
+func (s *NaiveStore) Del(key string) bool {
 	existing, existed := s.store.LoadAndDelete(key)
 	if !existed {
 		return false
 	}
 
-	item, ok := existing.(*syncMapItem)
+	item, ok := existing.(*naiveStoreItem)
 	if !ok {
-		// The key existed but was not a syncMapItem.
-		// This is unexpected, but it was deleted, so we return true.
+		// the key existed but was not a naiveStoreItem.
+		// this is unexpected, but it was deleted, so we return true.
 		return true
 	}
 
@@ -124,7 +124,7 @@ func (s *SyncMap) Del(key string) bool {
 	return !item.isExpired()
 }
 
-func (s *SyncMap) cleanupExpiredKeys() {
+func (s *NaiveStore) cleanupExpiredKeys() {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
@@ -132,7 +132,7 @@ func (s *SyncMap) cleanupExpiredKeys() {
 		select {
 		case <-ticker.C:
 			s.store.Range(func(key, value any) bool {
-				if item, ok := value.(*syncMapItem); ok && item.isExpired() {
+				if item, ok := value.(*naiveStoreItem); ok && item.isExpired() {
 					s.store.Delete(key)
 				}
 				return true
@@ -144,6 +144,6 @@ func (s *SyncMap) cleanupExpiredKeys() {
 }
 
 // Close stops the cleanup goroutine
-func (s *SyncMap) Close() {
+func (s *NaiveStore) Close() {
 	close(s.stopCleanup)
 }

@@ -9,24 +9,24 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type SyncMapSuite struct {
+type NaiveStoreSuite struct {
 	suite.Suite
-	s *SyncMap
+	s *NaiveStore
 }
 
-func (s *SyncMapSuite) SetupTest() {
-	s.s = NewSyncMap()
+func (s *NaiveStoreSuite) SetupTest() {
+	s.s = NewNaiveStore()
 }
 
-func (s *SyncMapSuite) TearDownTest() {
+func (s *NaiveStoreSuite) TearDownTest() {
 	s.s.Close()
 }
 
-func TestSyncMapSuite(t *testing.T) {
-	suite.Run(t, new(SyncMapSuite))
+func TestNaiveStoreSuite(t *testing.T) {
+	suite.Run(t, new(NaiveStoreSuite))
 }
 
-func (s *SyncMapSuite) TestSet_Get_Del() {
+func (s *NaiveStoreSuite) TestSet_Get_Del() {
 	// Test basic Set and Get
 	_, ok := s.s.Set(resp.SetArgs{Key: resp.BulkString("key1"), Value: "value1"})
 	s.Require().True(ok, "Set should succeed")
@@ -47,7 +47,7 @@ func (s *SyncMapSuite) TestSet_Get_Del() {
 	s.Require().False(deleted, "Del should fail for non-existent key")
 }
 
-func (s *SyncMapSuite) TestExpiration() {
+func (s *NaiveStoreSuite) TestExpiration() {
 	// Test EX
 	expire := time.Now().UnixMilli() + 1000 // 1 second
 	_, ok := s.s.Set(resp.SetArgs{Key: resp.BulkString("key_ex"), Value: "value_ex", Expire: expire})
@@ -77,7 +77,7 @@ func (s *SyncMapSuite) TestExpiration() {
 	)
 }
 
-func (s *SyncMapSuite) TestSet_NX() {
+func (s *NaiveStoreSuite) TestSet_NX() {
 	// Set with NX when key doesn't exist
 	_, ok := s.s.Set(resp.SetArgs{Key: resp.BulkString("key_nx"), Value: "value_nx", NX: true})
 	s.Require().True(ok, "Set with NX should succeed when key doesn't exist")
@@ -94,7 +94,7 @@ func (s *SyncMapSuite) TestSet_NX() {
 	s.Require().Equal("value_nx", val, "Value should not have changed")
 }
 
-func (s *SyncMapSuite) TestSet_XX() {
+func (s *NaiveStoreSuite) TestSet_XX() {
 	// Set with XX when key doesn't exist
 	_, ok := s.s.Set(resp.SetArgs{Key: resp.BulkString("key_xx"), Value: "value_xx", XX: true})
 	s.Require().False(ok, "Set with XX should fail when key doesn't exist")
@@ -113,7 +113,7 @@ func (s *SyncMapSuite) TestSet_XX() {
 	s.Require().Equal("new_value", val, "Value should have been updated")
 }
 
-func (s *SyncMapSuite) TestSet_GET() {
+func (s *NaiveStoreSuite) TestSet_GET() {
 	// Set with GET when key doesn't exist
 	oldVal, ok := s.s.Set(resp.SetArgs{Key: resp.BulkString("key_get"), Value: "value_get", Get: true})
 	s.Require().True(ok, "Set with GET should succeed")
@@ -125,7 +125,7 @@ func (s *SyncMapSuite) TestSet_GET() {
 	s.Require().Equal("value_get", oldVal, "Should return the old value")
 }
 
-func (s *SyncMapSuite) TestConcurrency() {
+func (s *NaiveStoreSuite) TestConcurrency() {
 	var wg sync.WaitGroup
 	numGoroutines := 100
 

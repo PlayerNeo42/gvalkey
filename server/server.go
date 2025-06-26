@@ -18,7 +18,7 @@ type Server struct {
 func NewServer(addr string, opts ...Option) *Server {
 	s := &Server{
 		addr:   addr,
-		store:  store.NewSyncMap(),
+		store:  store.NewNaiveStore(),
 		logger: slog.New(slog.DiscardHandler),
 	}
 	for _, opt := range opts {
