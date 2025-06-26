@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// 测试RESP编组功能的集成测试
+// Test integration of RESP marshaling functionality
 func TestMarshalerIntegration(t *testing.T) {
 	t.Run("Mixed types array marshaling", func(t *testing.T) {
 		array := resp.Array{
@@ -49,7 +49,7 @@ func TestMarshalerIntegration(t *testing.T) {
 	})
 }
 
-// 测试解析器的集成功能
+// Test integration functionality of parser
 func TestParserIntegration(t *testing.T) {
 	t.Run("Parse simple string", func(t *testing.T) {
 		data := "+OK\r\n"
@@ -130,7 +130,7 @@ func TestParserIntegration(t *testing.T) {
 	})
 }
 
-// 测试Parser错误处理
+// Test parser error handling
 func TestParserErrorHandling(t *testing.T) {
 	t.Run("Invalid array length", func(t *testing.T) {
 		data := "*abc\r\n"
@@ -173,7 +173,7 @@ func TestParserErrorHandling(t *testing.T) {
 	})
 }
 
-// 测试常量定义
+// Test constant definitions
 func TestConstants(t *testing.T) {
 	t.Run("Response constants", func(t *testing.T) {
 		require.Equal(t, "+OK\r\n", string(resp.OK.MarshalRESP()))
@@ -181,7 +181,7 @@ func TestConstants(t *testing.T) {
 	})
 
 	t.Run("Command constants", func(t *testing.T) {
-		// 测试一些常用命令常量
+		// Test some common command constants
 		require.Equal(t, "$3\r\nSET\r\n", string(resp.SET.MarshalRESP()))
 		require.Equal(t, "$3\r\nGET\r\n", string(resp.GET.MarshalRESP()))
 		require.Equal(t, "$3\r\nDEL\r\n", string(resp.DEL.MarshalRESP()))
@@ -192,7 +192,7 @@ func TestConstants(t *testing.T) {
 	})
 }
 
-// 测试二进制编组功能
+// Test binary marshaling functionality
 func TestBinaryMarshaling(t *testing.T) {
 	t.Run("BulkString binary marshaling", func(t *testing.T) {
 		b := resp.BulkString("hello world")
@@ -207,7 +207,7 @@ func TestBinaryMarshaling(t *testing.T) {
 	})
 }
 
-// 测试BulkString特殊方法
+// Test BulkString special methods
 func TestBulkStringMethods(t *testing.T) {
 	t.Run("Upper method", func(t *testing.T) {
 		b := resp.BulkString("hello world")
@@ -222,7 +222,7 @@ func TestBulkStringMethods(t *testing.T) {
 	})
 }
 
-// 测试完整的往返编解码
+// Test complete round-trip encoding and decoding
 func TestRoundTrip(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -233,7 +233,7 @@ func TestRoundTrip(t *testing.T) {
 		{"Integer", resp.Integer(42), resp.Integer(42)},
 		{"BulkString", resp.BulkString("test string"), resp.BulkString("test string")},
 		{"Empty BulkString", resp.BulkString(""), resp.BulkString("")},
-		{"Null", resp.Null{}, resp.BulkString("")}, // Null被解析为空的BulkString
+		{"Null", resp.Null{}, resp.BulkString("")}, // Null is parsed as empty BulkString
 	}
 
 	for _, tc := range testCases {
@@ -241,11 +241,11 @@ func TestRoundTrip(t *testing.T) {
 			marshaler, ok := tc.data.(resp.Marshaler)
 			require.True(t, ok, "Type should implement Marshaler interface")
 
-			// 编组
+			// Marshal
 			encoded := marshaler.MarshalRESP()
 			require.NotEmpty(t, encoded)
 
-			// 解组
+			// Unmarshal
 			parser := resp.NewParser(bytes.NewReader(encoded))
 			decoded, err := parser.Parse()
 			require.NoError(t, err)
@@ -254,7 +254,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
-// 测试Redis命令场景
+// Test Redis command scenarios
 func TestRedisCommandScenarios(t *testing.T) {
 	t.Run("SET command", func(t *testing.T) {
 		command := resp.Array{
@@ -317,10 +317,10 @@ func TestRedisCommandScenarios(t *testing.T) {
 	})
 }
 
-// 测试大数据处理
+// Test large data handling
 func TestLargeDataHandling(t *testing.T) {
 	t.Run("Large bulk string", func(t *testing.T) {
-		// 创建一个较大的字符串
+		// Create a large string
 		largeData := strings.Repeat("x", 1024)
 		bulkString := resp.BulkString(largeData)
 
@@ -333,7 +333,7 @@ func TestLargeDataHandling(t *testing.T) {
 	})
 
 	t.Run("Large array", func(t *testing.T) {
-		// 创建一个包含多个元素的数组
+		// Create an array with multiple elements
 		array := make(resp.Array, 100)
 		for i := 0; i < 100; i++ {
 			array[i] = resp.BulkString(strings.Repeat("data", i+1))
@@ -348,14 +348,14 @@ func TestLargeDataHandling(t *testing.T) {
 		require.True(t, ok)
 		require.Len(t, decodedArray, 100)
 
-		// 验证几个元素
+		// Verify a few elements
 		require.Equal(t, resp.BulkString("data"), decodedArray[0])
 		require.Equal(t, resp.BulkString(strings.Repeat("data", 50)), decodedArray[49])
 		require.Equal(t, resp.BulkString(strings.Repeat("data", 100)), decodedArray[99])
 	})
 }
 
-// 测试边界情况
+// Test edge cases
 func TestEdgeCases(t *testing.T) {
 	t.Run("Zero integer", func(t *testing.T) {
 		i := resp.Integer(0)
