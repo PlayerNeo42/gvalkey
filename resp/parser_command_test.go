@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,12 +16,12 @@ func TestParseSetArgs(t *testing.T) {
 		}
 		parsed, err := ParseSetArgs(args)
 		require.NoError(t, err)
-		assert.Equal(t, BulkString("key"), parsed.Key)
-		assert.Equal(t, BulkString("value"), parsed.Value)
-		assert.False(t, parsed.NX)
-		assert.False(t, parsed.XX)
-		assert.False(t, parsed.Get)
-		assert.Zero(t, parsed.Expire)
+		require.Equal(t, BulkString("key"), parsed.Key)
+		require.Equal(t, BulkString("value"), parsed.Value)
+		require.False(t, parsed.NX)
+		require.False(t, parsed.XX)
+		require.False(t, parsed.Get)
+		require.Zero(t, parsed.Expire)
 	})
 
 	t.Run("SET with EX", func(t *testing.T) {
@@ -35,9 +34,9 @@ func TestParseSetArgs(t *testing.T) {
 		}
 		parsed, err := ParseSetArgs(args)
 		require.NoError(t, err)
-		assert.Equal(t, BulkString("key"), parsed.Key)
-		assert.Equal(t, BulkString("value"), parsed.Value)
-		assert.WithinDuration(t, time.Now().Add(10*time.Second), time.UnixMilli(parsed.Expire), 50*time.Millisecond)
+		require.Equal(t, BulkString("key"), parsed.Key)
+		require.Equal(t, BulkString("value"), parsed.Value)
+		require.WithinDuration(t, time.Now().Add(10*time.Second), time.UnixMilli(parsed.Expire), 50*time.Millisecond)
 	})
 
 	t.Run("SET with PX", func(t *testing.T) {
@@ -50,9 +49,9 @@ func TestParseSetArgs(t *testing.T) {
 		}
 		parsed, err := ParseSetArgs(args)
 		require.NoError(t, err)
-		assert.Equal(t, BulkString("key"), parsed.Key)
-		assert.Equal(t, BulkString("value"), parsed.Value)
-		assert.WithinDuration(t, time.Now().Add(1234*time.Millisecond), time.UnixMilli(parsed.Expire), 50*time.Millisecond)
+		require.Equal(t, BulkString("key"), parsed.Key)
+		require.Equal(t, BulkString("value"), parsed.Value)
+		require.WithinDuration(t, time.Now().Add(1234*time.Millisecond), time.UnixMilli(parsed.Expire), 50*time.Millisecond)
 	})
 
 	t.Run("SET with NX", func(t *testing.T) {
@@ -64,7 +63,7 @@ func TestParseSetArgs(t *testing.T) {
 		}
 		parsed, err := ParseSetArgs(args)
 		require.NoError(t, err)
-		assert.True(t, parsed.NX)
+		require.True(t, parsed.NX)
 	})
 
 	t.Run("SET with XX", func(t *testing.T) {
@@ -76,7 +75,7 @@ func TestParseSetArgs(t *testing.T) {
 		}
 		parsed, err := ParseSetArgs(args)
 		require.NoError(t, err)
-		assert.True(t, parsed.XX)
+		require.True(t, parsed.XX)
 	})
 
 	t.Run("SET with GET", func(t *testing.T) {
@@ -88,7 +87,7 @@ func TestParseSetArgs(t *testing.T) {
 		}
 		parsed, err := ParseSetArgs(args)
 		require.NoError(t, err)
-		assert.True(t, parsed.Get)
+		require.True(t, parsed.Get)
 	})
 
 	t.Run("SET with multiple options", func(t *testing.T) {
@@ -103,9 +102,9 @@ func TestParseSetArgs(t *testing.T) {
 		}
 		parsed, err := ParseSetArgs(args)
 		require.NoError(t, err)
-		assert.True(t, parsed.NX)
-		assert.True(t, parsed.Get)
-		assert.WithinDuration(t, time.Now().Add(500*time.Millisecond), time.UnixMilli(parsed.Expire), 50*time.Millisecond)
+		require.True(t, parsed.NX)
+		require.True(t, parsed.Get)
+		require.WithinDuration(t, time.Now().Add(500*time.Millisecond), time.UnixMilli(parsed.Expire), 50*time.Millisecond)
 	})
 
 	t.Run("Error: NX and XX", func(t *testing.T) {
@@ -118,7 +117,7 @@ func TestParseSetArgs(t *testing.T) {
 		}
 		_, err := ParseSetArgs(args)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "syntax error")
+		require.Contains(t, err.Error(), "syntax error")
 	})
 
 	t.Run("Error: EX and PX", func(t *testing.T) {
@@ -133,7 +132,7 @@ func TestParseSetArgs(t *testing.T) {
 		}
 		_, err := ParseSetArgs(args)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "syntax error")
+		require.Contains(t, err.Error(), "syntax error")
 	})
 
 	t.Run("Error: Invalid EX value", func(t *testing.T) {

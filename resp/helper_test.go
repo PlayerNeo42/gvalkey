@@ -3,7 +3,6 @@ package resp
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -12,7 +11,7 @@ func TestPeekNextInteger(t *testing.T) {
 		args := Array{BulkString("123")}
 		val, err := peekNextInteger(args, -1)
 		require.NoError(t, err)
-		assert.Equal(t, int64(123), val)
+		require.Equal(t, int64(123), val)
 	})
 
 	t.Run("Not an integer", func(t *testing.T) {
