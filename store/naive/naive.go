@@ -1,15 +1,18 @@
-package store
+package naive
 
 import (
 	"sync"
 	"time"
 
 	"github.com/PlayerNeo42/gvalkey/resp"
+	"github.com/PlayerNeo42/gvalkey/store"
 )
+
+var _ store.Store = (*NaiveStore)(nil)
 
 type naiveStoreItem struct {
 	value      any
-	expiration int64 // Expiration timestamp, 0 means never expire
+	expiration int64 // expiration timestamp, 0 means never expire
 }
 
 func (item *naiveStoreItem) isExpired() bool {
@@ -69,10 +72,15 @@ func (s *NaiveStore) Set(args resp.SetArgs) (any, bool) {
 		return nil, false
 	}
 
-	// If we proceed, it means we will perform a set operation.
+	// if we proceed, it means we will perform a set operation.
+	var expiration int64
+	if args.Expire > 0 {
+		// convert relative time to absolute timestamp
+		expiration = time.Now().UnixMilli() + args.Expire
+	}
 	newItem := &naiveStoreItem{
 		value:      args.Value,
-		expiration: args.Expire,
+		expiration: expiration,
 	}
 	s.store.Store(string(key), newItem)
 
@@ -80,7 +88,7 @@ func (s *NaiveStore) Set(args resp.SetArgs) (any, bool) {
 		if loaded { // 'loaded' is true only if the key existed and was not expired.
 			return oldItem.value, true
 		}
-		// If key didn't exist or was expired, there's no old value to return, but the set was successful.
+		// if key didn't exist or was expired, there's no old value to return, but the set was successful.
 		return nil, true
 	}
 
@@ -98,7 +106,7 @@ func (s *NaiveStore) Get(key string) (any, bool) {
 		return nil, false
 	}
 
-	// Check if expired
+	// check if expired
 	if item.isExpired() {
 		s.store.Delete(key)
 		return nil, false
@@ -120,7 +128,7 @@ func (s *NaiveStore) Del(key string) bool {
 		return true
 	}
 
-	// Return false if the key was expired (logically didn't exist), true otherwise.
+	// return false if the key was expired (logically didn't exist), true otherwise.
 	return !item.isExpired()
 }
 

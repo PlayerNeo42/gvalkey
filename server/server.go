@@ -6,26 +6,27 @@ import (
 
 	"github.com/PlayerNeo42/gvalkey/handler"
 	"github.com/PlayerNeo42/gvalkey/store"
+	"github.com/PlayerNeo42/gvalkey/store/naive"
 )
 
 type Server struct {
 	addr    string
 	logger  *slog.Logger
-	store   store.Store
+	storage store.Store
 	handler *handler.Handler
 }
 
 func NewServer(addr string, opts ...Option) *Server {
 	s := &Server{
-		addr:   addr,
-		store:  store.NewNaiveStore(),
-		logger: slog.New(slog.DiscardHandler),
+		addr:    addr,
+		storage: naive.NewNaiveStore(),
+		logger:  slog.New(slog.DiscardHandler),
 	}
 	for _, opt := range opts {
 		opt(s)
 	}
 
-	s.handler = handler.New(s.logger, s.store)
+	s.handler = handler.New(s.logger, s.storage)
 
 	return s
 }
