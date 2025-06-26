@@ -10,31 +10,29 @@ func (h *Handler) handleSet(args resp.Array) (resp.Marshaler, error) {
 		return nil, err
 	}
 
-	oldValue, success := h.store.Set(
-		string(parsedArgs.Key.MarshalBinary()),
-		parsedArgs.Value,
-		parsedArgs.EX,
-		parsedArgs.PX,
-		parsedArgs.NX,
-		parsedArgs.XX,
-		parsedArgs.Get,
-	)
+	oldValue, success := h.store.Set(*parsedArgs)
 
+	// handle the GET option: return the old value or NULL.
 	if parsedArgs.Get {
-		if success && oldValue != nil {
-			if val, ok := oldValue.(resp.Marshaler); ok {
-				return val, nil
-			}
-			// 如果不是 Marshaler，包装成 BulkString
-			return resp.BulkString(oldValue.(string)), nil
+		if !success || oldValue == nil {
+			return resp.NULL, nil
 		}
+
+		// marshal the old value for the response safely.
+		switch val := oldValue.(type) {
+		case resp.Marshaler:
+			return val, nil
+		default:
+			// this case prevents a panic if the store returns an unexpected type.
+			return resp.NewSimpleError("internal error: stored value has an unmarshalable type"), nil
+		}
+	}
+
+	// if a conditional SET (NX/XX) failed, return NULL.
+	if !success {
 		return resp.NULL, nil
 	}
 
-	// 对于 NX 和 XX 选项，如果操作失败，返回 NULL
-	if (parsedArgs.NX || parsedArgs.XX) && !success {
-		return resp.NULL, nil
-	}
-
+	// otherwise, the SET was successful.
 	return resp.OK, nil
 }

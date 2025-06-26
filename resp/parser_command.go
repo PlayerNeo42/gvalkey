@@ -3,6 +3,7 @@ package resp
 import (
 	"errors"
 	"fmt"
+	"time"
 )
 
 func ParseGetArgs(args Array) (BinaryMarshaler, error) {
@@ -33,6 +34,8 @@ func ParseSetArgs(args Array) (*SetArgs, error) {
 		return parsedArgs, nil
 	}
 
+	var ex, px *int64
+
 	for i := 3; i < length; i++ {
 		option, ok := args[i].(BulkString)
 		if !ok {
@@ -40,19 +43,19 @@ func ParseSetArgs(args Array) (*SetArgs, error) {
 		}
 		switch option.Upper() {
 		case EX:
-			ex, err := peekNextInteger(args, i)
+			exValue, err := peekNextInteger(args, i)
 			if err != nil {
 				return nil, fmt.Errorf("syntax error: %w", err)
 			}
-			parsedArgs.EX = &ex
+			ex = &exValue
 			// skip the next argument
 			i++
 		case PX:
-			px, err := peekNextInteger(args, i)
+			pxValue, err := peekNextInteger(args, i)
 			if err != nil {
 				return nil, fmt.Errorf("syntax error: %w", err)
 			}
-			parsedArgs.PX = &px
+			px = &pxValue
 			// skip the next argument
 			i++
 		case NX:
@@ -70,16 +73,20 @@ func ParseSetArgs(args Array) (*SetArgs, error) {
 		return nil, errors.New("syntax error: NX and XX options cannot be used together")
 	}
 
-	if parsedArgs.EX != nil && parsedArgs.PX != nil {
+	if ex != nil && px != nil {
 		return nil, errors.New("syntax error: EX and PX options cannot be used together")
 	}
 
-	if parsedArgs.EX != nil && *parsedArgs.EX < 0 {
-		return nil, errors.New("syntax error: EX option must be greater than 0")
-	}
-
-	if parsedArgs.PX != nil && *parsedArgs.PX < 0 {
-		return nil, errors.New("syntax error: PX option must be greater than 0")
+	if ex != nil {
+		if *ex <= 0 {
+			return nil, errors.New("syntax error: EX value must be positive")
+		}
+		parsedArgs.Expire = time.Now().UnixMilli() + *ex*1000
+	} else if px != nil {
+		if *px <= 0 {
+			return nil, errors.New("syntax error: PX value must be positive")
+		}
+		parsedArgs.Expire = time.Now().UnixMilli() + *px
 	}
 
 	return parsedArgs, nil
