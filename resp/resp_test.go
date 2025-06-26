@@ -112,7 +112,7 @@ func TestParserIntegration(t *testing.T) {
 
 		array, ok := result.(resp.Array)
 		require.True(t, ok)
-		require.Len(t, array, 0)
+		require.Empty(t, array)
 	})
 
 	t.Run("Parse complex nested array", func(t *testing.T) {
@@ -226,8 +226,8 @@ func TestBulkStringMethods(t *testing.T) {
 func TestRoundTrip(t *testing.T) {
 	testCases := []struct {
 		name     string
-		data     interface{}
-		expected interface{}
+		data     any
+		expected any
 	}{
 		{"SimpleString", resp.SimpleString("test"), resp.SimpleString("test")},
 		{"Integer", resp.Integer(42), resp.Integer(42)},
