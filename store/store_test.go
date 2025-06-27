@@ -1,14 +1,13 @@
 package store_test
 
 import (
-	"context"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/PlayerNeo42/gvalkey/resp"
 	"github.com/PlayerNeo42/gvalkey/store"
-	"github.com/PlayerNeo42/gvalkey/store/advanced"
+	"github.com/PlayerNeo42/gvalkey/store/eventloop"
 	"github.com/PlayerNeo42/gvalkey/store/naive"
 	"github.com/stretchr/testify/suite"
 )
@@ -32,28 +31,16 @@ func TestNaiveStore(t *testing.T) {
 	})
 }
 
-// TestAdvancedStore tests the advanced store implementation
-func TestAdvancedStore(t *testing.T) {
-	var ctx context.Context
-	var cancel context.CancelFunc
-
-	advancedStoreFactory := func() store.Store {
-		ctx, cancel = context.WithCancel(context.Background())
-		advancedStore := advanced.NewAdvancedStore()
-		advancedStore.Start(ctx)
-
-		// Use require.Eventually instead of time.Sleep to wait for event loop startup
-		return advancedStore
+// TestEventloopStore tests the eventloop store implementation
+func TestEventloopStore(t *testing.T) {
+	eventloopStoreFactory := func() store.Store {
+		return eventloop.NewEventloopStore()
 	}
 
-	cleanup := func() {
-		if cancel != nil {
-			cancel()
-		}
-	}
+	cleanup := func() {}
 
 	suite.Run(t, &StoreTestSuite{
-		storeFactory: advancedStoreFactory,
+		storeFactory: eventloopStoreFactory,
 		cleanup:      cleanup,
 	})
 }
@@ -79,7 +66,7 @@ type StoreTestSuite struct {
 func (s *StoreTestSuite) SetupTest() {
 	s.store = s.storeFactory()
 
-	// For AdvancedStore, wait for event loop to start
+	// For EventloopStore, wait for event loop to start
 	s.Require().Eventually(func() bool {
 		// Try a simple Set operation to test if event loop has started
 		testArgs := resp.SetArgs{
@@ -135,9 +122,9 @@ func (s *StoreTestSuite) TestBasicOperations() {
 func (s *StoreTestSuite) TestExpiration() {
 	// Set a key that expires after 1 second
 	setArgs := resp.SetArgs{
-		Key:    MockBinaryMarshaler{data: "expirekey"},
-		Value:  "expirevalue",
-		Expire: 1000,
+		Key:      MockBinaryMarshaler{data: "expirekey"},
+		Value:    "expirevalue",
+		ExpireAt: time.Now().Add(1 * time.Second),
 	}
 	_, ok := s.store.Set(setArgs)
 	s.Require().True(ok, "Setting expiring key should succeed")
