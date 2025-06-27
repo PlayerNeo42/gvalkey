@@ -21,7 +21,7 @@ func TestParseSetArgs(t *testing.T) {
 		require.False(t, parsed.NX)
 		require.False(t, parsed.XX)
 		require.False(t, parsed.Get)
-		require.Zero(t, parsed.Expire)
+		require.Zero(t, parsed.ExpireAt)
 	})
 
 	t.Run("SET with EX", func(t *testing.T) {
@@ -36,7 +36,7 @@ func TestParseSetArgs(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, BulkString("key"), parsed.Key)
 		require.Equal(t, BulkString("value"), parsed.Value)
-		require.WithinDuration(t, time.Now().Add(10*time.Second), time.UnixMilli(parsed.Expire), 50*time.Millisecond)
+		require.WithinDuration(t, time.Now().Add(10*time.Second), parsed.ExpireAt, 50*time.Millisecond)
 	})
 
 	t.Run("SET with PX", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestParseSetArgs(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, BulkString("key"), parsed.Key)
 		require.Equal(t, BulkString("value"), parsed.Value)
-		require.WithinDuration(t, time.Now().Add(1234*time.Millisecond), time.UnixMilli(parsed.Expire), 50*time.Millisecond)
+		require.WithinDuration(t, time.Now().Add(1234*time.Millisecond), parsed.ExpireAt, 50*time.Millisecond)
 	})
 
 	t.Run("SET with NX", func(t *testing.T) {
@@ -104,7 +104,7 @@ func TestParseSetArgs(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, parsed.NX)
 		require.True(t, parsed.Get)
-		require.WithinDuration(t, time.Now().Add(500*time.Millisecond), time.UnixMilli(parsed.Expire), 50*time.Millisecond)
+		require.WithinDuration(t, time.Now().Add(500*time.Millisecond), parsed.ExpireAt, 50*time.Millisecond)
 	})
 
 	t.Run("Error: NX and XX", func(t *testing.T) {

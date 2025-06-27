@@ -1,10 +1,12 @@
 package resp
 
+import "time"
+
 type SetArgs struct {
-	Key    BinaryMarshaler
-	Value  any
-	Expire int64 // in milliseconds
-	NX     bool
-	XX     bool
-	Get    bool
+	Key      BinaryMarshaler
+	Value    any
+	ExpireAt time.Time
+	NX       bool
+	XX       bool
+	Get      bool
 }

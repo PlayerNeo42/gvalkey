@@ -81,12 +81,12 @@ func ParseSetArgs(args Array) (*SetArgs, error) {
 		if *ex <= 0 {
 			return nil, errors.New("syntax error: EX value must be positive")
 		}
-		parsedArgs.Expire = time.Now().UnixMilli() + *ex*1000
+		parsedArgs.ExpireAt = time.Now().Add(time.Duration(*ex) * time.Second)
 	} else if px != nil {
 		if *px <= 0 {
 			return nil, errors.New("syntax error: PX value must be positive")
 		}
-		parsedArgs.Expire = time.Now().UnixMilli() + *px
+		parsedArgs.ExpireAt = time.Now().Add(time.Duration(*px) * time.Millisecond)
 	}
 
 	return parsedArgs, nil
