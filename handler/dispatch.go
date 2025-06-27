@@ -7,7 +7,7 @@ import (
 	"github.com/PlayerNeo42/gvalkey/resp"
 )
 
-func (h *Handler) dispatch(args resp.Array) (resp.Marshaler, error) {
+func (h *Handler) dispatch(args resp.Array) (resp.Payload, error) {
 	val, ok := args[0].(resp.BulkString)
 	if !ok {
 		return resp.NULL, errors.New("command must be a bulk string")

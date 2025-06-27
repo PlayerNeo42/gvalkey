@@ -40,7 +40,7 @@ func NewNaiveStore() *NaiveStore {
 }
 
 func (s *NaiveStore) Set(args resp.SetArgs) (any, bool) {
-	key := string(args.Key.MarshalBinary())
+	key := args.Key.String()
 
 	// load the existing item first to check its status.
 	existing, exists := s.store.Load(key)

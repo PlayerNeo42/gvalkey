@@ -17,9 +17,12 @@ type Server struct {
 }
 
 func NewServer(addr string, opts ...Option) *Server {
+	// storage := eventloop.NewEventloopStore()
+	storage := naive.NewNaiveStore()
+
 	s := &Server{
 		addr:    addr,
-		storage: naive.NewNaiveStore(),
+		storage: storage,
 		logger:  slog.New(slog.DiscardHandler),
 	}
 	for _, opt := range opts {

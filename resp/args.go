@@ -1,9 +1,11 @@
 package resp
 
-import "time"
+import (
+	"time"
+)
 
 type SetArgs struct {
-	Key      BinaryMarshaler
+	Key      Stringer
 	Value    any
 	ExpireAt time.Time
 	NX       bool

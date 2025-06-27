@@ -45,13 +45,13 @@ func TestEventloopStore(t *testing.T) {
 	})
 }
 
-// MockBinaryMarshaler implements BinaryMarshaler interface for testing
-type MockBinaryMarshaler struct {
+// MockStringer implements Stringer interface for testing
+type MockStringer struct {
 	data string
 }
 
-func (m MockBinaryMarshaler) MarshalBinary() []byte {
-	return []byte(m.data)
+func (m MockStringer) String() string {
+	return m.data
 }
 
 // StoreTestSuite defines a common test suite that can test any type that implements the Store interface
@@ -70,7 +70,7 @@ func (s *StoreTestSuite) SetupTest() {
 	s.Require().Eventually(func() bool {
 		// Try a simple Set operation to test if event loop has started
 		testArgs := resp.SetArgs{
-			Key:   MockBinaryMarshaler{data: "__startup_test__"},
+			Key:   MockStringer{data: "__startup_test__"},
 			Value: "test",
 		}
 		_, ok := s.store.Set(testArgs)
@@ -95,7 +95,7 @@ func (s *StoreTestSuite) TearDownTest() {
 func (s *StoreTestSuite) TestBasicOperations() {
 	// Test Set and Get
 	setArgs := resp.SetArgs{
-		Key:   MockBinaryMarshaler{data: "testkey"},
+		Key:   MockStringer{data: "testkey"},
 		Value: "testvalue",
 	}
 	_, ok := s.store.Set(setArgs)
@@ -122,7 +122,7 @@ func (s *StoreTestSuite) TestBasicOperations() {
 func (s *StoreTestSuite) TestExpiration() {
 	// Set a key that expires after 1 second
 	setArgs := resp.SetArgs{
-		Key:      MockBinaryMarshaler{data: "expirekey"},
+		Key:      MockStringer{data: "expirekey"},
 		Value:    "expirevalue",
 		ExpireAt: time.Now().Add(1 * time.Second),
 	}
@@ -145,7 +145,7 @@ func (s *StoreTestSuite) TestExpiration() {
 func (s *StoreTestSuite) TestSetNX() {
 	// First set a key
 	setArgs := resp.SetArgs{
-		Key:   MockBinaryMarshaler{data: "nxkey"},
+		Key:   MockStringer{data: "nxkey"},
 		Value: "original",
 	}
 	_, ok := s.store.Set(setArgs)
@@ -153,7 +153,7 @@ func (s *StoreTestSuite) TestSetNX() {
 
 	// Try to reset with NX, should fail
 	setArgsNX := resp.SetArgs{
-		Key:   MockBinaryMarshaler{data: "nxkey"},
+		Key:   MockStringer{data: "nxkey"},
 		Value: "new",
 		NX:    true,
 	}
@@ -167,7 +167,7 @@ func (s *StoreTestSuite) TestSetNX() {
 
 	// Using NX on non-existent key should succeed
 	setArgsNXNew := resp.SetArgs{
-		Key:   MockBinaryMarshaler{data: "newkey"},
+		Key:   MockStringer{data: "newkey"},
 		Value: "newvalue",
 		NX:    true,
 	}
@@ -183,7 +183,7 @@ func (s *StoreTestSuite) TestSetNX() {
 func (s *StoreTestSuite) TestSetXX() {
 	// Using XX on non-existent key should fail
 	setArgsXX := resp.SetArgs{
-		Key:   MockBinaryMarshaler{data: "xxkey"},
+		Key:   MockStringer{data: "xxkey"},
 		Value: "value",
 		XX:    true,
 	}
@@ -195,7 +195,7 @@ func (s *StoreTestSuite) TestSetXX() {
 
 	// First set the key
 	setArgs := resp.SetArgs{
-		Key:   MockBinaryMarshaler{data: "xxkey"},
+		Key:   MockStringer{data: "xxkey"},
 		Value: "original",
 	}
 	_, ok = s.store.Set(setArgs)
@@ -203,7 +203,7 @@ func (s *StoreTestSuite) TestSetXX() {
 
 	// Now updating with XX should succeed
 	setArgsXXUpdate := resp.SetArgs{
-		Key:   MockBinaryMarshaler{data: "xxkey"},
+		Key:   MockStringer{data: "xxkey"},
 		Value: "updated",
 		XX:    true,
 	}
@@ -219,7 +219,7 @@ func (s *StoreTestSuite) TestSetXX() {
 func (s *StoreTestSuite) TestSetGET() {
 	// Using GET on non-existent key
 	setArgsGET := resp.SetArgs{
-		Key:   MockBinaryMarshaler{data: "getkey"},
+		Key:   MockStringer{data: "getkey"},
 		Value: "newvalue",
 		Get:   true,
 	}
@@ -229,7 +229,7 @@ func (s *StoreTestSuite) TestSetGET() {
 
 	// Using GET on existing key
 	setArgsGETUpdate := resp.SetArgs{
-		Key:   MockBinaryMarshaler{data: "getkey"},
+		Key:   MockStringer{data: "getkey"},
 		Value: "updatedvalue",
 		Get:   true,
 	}
@@ -253,7 +253,7 @@ func (s *StoreTestSuite) TestConcurrency() {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			key := MockBinaryMarshaler{data: "concurrentkey" + string(rune(i))}
+			key := MockStringer{data: "concurrentkey" + string(rune(i))}
 			setArgs := resp.SetArgs{Key: key, Value: i}
 			_, ok := s.store.Set(setArgs)
 			s.True(ok)

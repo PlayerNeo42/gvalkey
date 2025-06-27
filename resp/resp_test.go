@@ -2,6 +2,7 @@ package resp_test
 
 import (
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 )
 
 // Test integration of RESP marshaling functionality
-func TestMarshalerIntegration(t *testing.T) {
+func TestPayloadIntegration(t *testing.T) {
 	t.Run("Mixed types array marshaling", func(t *testing.T) {
 		array := resp.Array{
 			resp.SimpleString("OK"),
@@ -21,7 +22,9 @@ func TestMarshalerIntegration(t *testing.T) {
 			resp.Null{},
 		}
 
-		result := array.MarshalRESP()
+		reader := array.RESPReader()
+		result, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		expected := "*5\r\n+OK\r\n:123\r\n$5\r\nhello\r\n-ERR test error\r\n$-1\r\n"
 		require.Equal(t, expected, string(result))
 	})
@@ -36,14 +39,18 @@ func TestMarshalerIntegration(t *testing.T) {
 			innerArray,
 		}
 
-		result := outerArray.MarshalRESP()
+		reader := outerArray.RESPReader()
+		result, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		expected := "*2\r\n$5\r\nouter\r\n*2\r\n$5\r\ninner\r\n:456\r\n"
 		require.Equal(t, expected, string(result))
 	})
 
 	t.Run("Empty array", func(t *testing.T) {
 		array := resp.Array{}
-		result := array.MarshalRESP()
+		reader := array.RESPReader()
+		result, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		expected := "*0\r\n"
 		require.Equal(t, expected, string(result))
 	})
@@ -176,34 +183,68 @@ func TestParserErrorHandling(t *testing.T) {
 // Test constant definitions
 func TestConstants(t *testing.T) {
 	t.Run("Response constants", func(t *testing.T) {
-		require.Equal(t, "+OK\r\n", string(resp.OK.MarshalRESP()))
-		require.Equal(t, "$-1\r\n", string(resp.NULL.MarshalRESP()))
+		okReader := resp.OK.RESPReader()
+		okData, err := io.ReadAll(okReader)
+		require.NoError(t, err)
+		require.Equal(t, "+OK\r\n", string(okData))
+
+		nullReader := resp.NULL.RESPReader()
+		nullData, err := io.ReadAll(nullReader)
+		require.NoError(t, err)
+		require.Equal(t, "$-1\r\n", string(nullData))
 	})
 
 	t.Run("Command constants", func(t *testing.T) {
 		// Test some common command constants
-		require.Equal(t, "$3\r\nSET\r\n", string(resp.SET.MarshalRESP()))
-		require.Equal(t, "$3\r\nGET\r\n", string(resp.GET.MarshalRESP()))
-		require.Equal(t, "$3\r\nDEL\r\n", string(resp.DEL.MarshalRESP()))
-		require.Equal(t, "$2\r\nEX\r\n", string(resp.EX.MarshalRESP()))
-		require.Equal(t, "$2\r\nPX\r\n", string(resp.PX.MarshalRESP()))
-		require.Equal(t, "$2\r\nNX\r\n", string(resp.NX.MarshalRESP()))
-		require.Equal(t, "$2\r\nXX\r\n", string(resp.XX.MarshalRESP()))
+		setReader := resp.SET.RESPReader()
+		setData, err := io.ReadAll(setReader)
+		require.NoError(t, err)
+		require.Equal(t, "$3\r\nSET\r\n", string(setData))
+
+		getReader := resp.GET.RESPReader()
+		getData, err := io.ReadAll(getReader)
+		require.NoError(t, err)
+		require.Equal(t, "$3\r\nGET\r\n", string(getData))
+
+		delReader := resp.DEL.RESPReader()
+		delData, err := io.ReadAll(delReader)
+		require.NoError(t, err)
+		require.Equal(t, "$3\r\nDEL\r\n", string(delData))
+
+		exReader := resp.EX.RESPReader()
+		exData, err := io.ReadAll(exReader)
+		require.NoError(t, err)
+		require.Equal(t, "$2\r\nEX\r\n", string(exData))
+
+		pxReader := resp.PX.RESPReader()
+		pxData, err := io.ReadAll(pxReader)
+		require.NoError(t, err)
+		require.Equal(t, "$2\r\nPX\r\n", string(pxData))
+
+		nxReader := resp.NX.RESPReader()
+		nxData, err := io.ReadAll(nxReader)
+		require.NoError(t, err)
+		require.Equal(t, "$2\r\nNX\r\n", string(nxData))
+
+		xxReader := resp.XX.RESPReader()
+		xxData, err := io.ReadAll(xxReader)
+		require.NoError(t, err)
+		require.Equal(t, "$2\r\nXX\r\n", string(xxData))
 	})
 }
 
-// Test binary marshaling functionality
-func TestBinaryMarshaling(t *testing.T) {
-	t.Run("BulkString binary marshaling", func(t *testing.T) {
+// Test string marshaling functionality
+func TestStringMarshaling(t *testing.T) {
+	t.Run("BulkString string marshaling", func(t *testing.T) {
 		b := resp.BulkString("hello world")
-		result := b.MarshalBinary()
-		require.Equal(t, []byte("hello world"), result)
+		result := b.String()
+		require.Equal(t, "hello world", result)
 	})
 
-	t.Run("Integer binary marshaling", func(t *testing.T) {
+	t.Run("Integer string marshaling", func(t *testing.T) {
 		i := resp.Integer(12345)
-		result := i.MarshalBinary()
-		require.Equal(t, []byte("12345"), result)
+		result := i.String()
+		require.Equal(t, "12345", result)
 	})
 }
 
@@ -238,11 +279,13 @@ func TestRoundTrip(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			marshaler, ok := tc.data.(resp.Marshaler)
-			require.True(t, ok, "Type should implement Marshaler interface")
+			marshaler, ok := tc.data.(resp.Payload)
+			require.True(t, ok, "Type should implement Payload interface")
 
 			// Marshal
-			encoded := marshaler.MarshalRESP()
+			reader := marshaler.RESPReader()
+			encoded, err := io.ReadAll(reader)
+			require.NoError(t, err)
 			require.NotEmpty(t, encoded)
 
 			// Unmarshal
@@ -263,7 +306,9 @@ func TestRedisCommandScenarios(t *testing.T) {
 			resp.BulkString("myvalue"),
 		}
 
-		encoded := command.MarshalRESP()
+		reader := command.RESPReader()
+		encoded, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		parser := resp.NewParser(bytes.NewReader(encoded))
 		decoded, err := parser.Parse()
 
@@ -282,7 +327,9 @@ func TestRedisCommandScenarios(t *testing.T) {
 			resp.BulkString("mykey"),
 		}
 
-		encoded := command.MarshalRESP()
+		reader := command.RESPReader()
+		encoded, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		parser := resp.NewParser(bytes.NewReader(encoded))
 		decoded, err := parser.Parse()
 
@@ -302,7 +349,9 @@ func TestRedisCommandScenarios(t *testing.T) {
 			resp.BulkString("key3"),
 		}
 
-		encoded := command.MarshalRESP()
+		reader := command.RESPReader()
+		encoded, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		parser := resp.NewParser(bytes.NewReader(encoded))
 		decoded, err := parser.Parse()
 
@@ -324,7 +373,9 @@ func TestLargeDataHandling(t *testing.T) {
 		largeData := strings.Repeat("x", 1024)
 		bulkString := resp.BulkString(largeData)
 
-		encoded := bulkString.MarshalRESP()
+		reader := bulkString.RESPReader()
+		encoded, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		parser := resp.NewParser(bytes.NewReader(encoded))
 		decoded, err := parser.Parse()
 
@@ -339,7 +390,9 @@ func TestLargeDataHandling(t *testing.T) {
 			array[i] = resp.BulkString(strings.Repeat("data", i+1))
 		}
 
-		encoded := array.MarshalRESP()
+		reader := array.RESPReader()
+		encoded, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		parser := resp.NewParser(bytes.NewReader(encoded))
 		decoded, err := parser.Parse()
 
@@ -359,7 +412,9 @@ func TestLargeDataHandling(t *testing.T) {
 func TestEdgeCases(t *testing.T) {
 	t.Run("Zero integer", func(t *testing.T) {
 		i := resp.Integer(0)
-		encoded := i.MarshalRESP()
+		reader := i.RESPReader()
+		encoded, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		require.Equal(t, ":0\r\n", string(encoded))
 
 		parser := resp.NewParser(bytes.NewReader(encoded))
@@ -370,7 +425,9 @@ func TestEdgeCases(t *testing.T) {
 
 	t.Run("Negative integer", func(t *testing.T) {
 		i := resp.Integer(-123)
-		encoded := i.MarshalRESP()
+		reader := i.RESPReader()
+		encoded, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		require.Equal(t, ":-123\r\n", string(encoded))
 
 		parser := resp.NewParser(bytes.NewReader(encoded))
@@ -381,7 +438,9 @@ func TestEdgeCases(t *testing.T) {
 
 	t.Run("BulkString with special characters", func(t *testing.T) {
 		special := resp.BulkString("hello\r\nworld\ttab")
-		encoded := special.MarshalRESP()
+		reader := special.RESPReader()
+		encoded, err := io.ReadAll(reader)
+		require.NoError(t, err)
 
 		parser := resp.NewParser(bytes.NewReader(encoded))
 		decoded, err := parser.Parse()
@@ -391,7 +450,9 @@ func TestEdgeCases(t *testing.T) {
 
 	t.Run("Empty simple string", func(t *testing.T) {
 		s := resp.SimpleString("")
-		encoded := s.MarshalRESP()
+		reader := s.RESPReader()
+		encoded, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		require.Equal(t, "+\r\n", string(encoded))
 
 		parser := resp.NewParser(bytes.NewReader(encoded))

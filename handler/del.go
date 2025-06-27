@@ -4,7 +4,7 @@ import (
 	"github.com/PlayerNeo42/gvalkey/resp"
 )
 
-func (h *Handler) handleDel(args resp.Array) (resp.Marshaler, error) {
+func (h *Handler) handleDel(args resp.Array) (resp.Payload, error) {
 	keys, err := resp.ParseDelArgs(args)
 	if err != nil {
 		return nil, err
@@ -12,7 +12,7 @@ func (h *Handler) handleDel(args resp.Array) (resp.Marshaler, error) {
 
 	count := 0
 	for _, key := range keys {
-		if h.store.Del(string(key.MarshalBinary())) {
+		if h.store.Del(key.String()) {
 			count++
 		}
 	}

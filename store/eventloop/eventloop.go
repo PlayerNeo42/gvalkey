@@ -104,7 +104,7 @@ func (s *EventloopStore) handleGet(key string) operationResult {
 }
 
 func (s *EventloopStore) handleSet(args resp.SetArgs) operationResult {
-	key := string(args.Key.MarshalBinary())
+	key := args.Key.String()
 
 	oldValue, exists := s.m[key]
 

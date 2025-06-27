@@ -17,7 +17,7 @@ type Command struct {
 	Args int
 
 	// handler of the command
-	Handler func(command resp.Array) (resp.Marshaler, error)
+	Handler func(command resp.Array) (resp.Payload, error)
 }
 
 type CommandTable struct {

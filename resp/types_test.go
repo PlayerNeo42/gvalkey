@@ -1,48 +1,70 @@
 package resp
 
 import (
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestSimpleString_MarshalRESP(t *testing.T) {
+func TestSimpleString_Reader(t *testing.T) {
 	s := SimpleString("OK")
-	require.Equal(t, []byte("+OK\r\n"), s.MarshalRESP())
+	reader := s.RESPReader()
+	data, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	require.Equal(t, "+OK\r\n", string(data))
 }
 
-func TestSimpleError_MarshalRESP(t *testing.T) {
+func TestSimpleError_Reader(t *testing.T) {
 	e := NewSimpleError("Error message")
-	require.Equal(t, []byte("-ERR Error message\r\n"), e.MarshalRESP())
+	reader := e.RESPReader()
+	data, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	require.Equal(t, "-ERR Error message\r\n", string(data))
 }
 
-func TestBulkString_MarshalRESP(t *testing.T) {
+func TestBulkString_Reader(t *testing.T) {
 	t.Run("Normal string", func(t *testing.T) {
 		b := BulkString("hello")
-		require.Equal(t, []byte("$5\r\nhello\r\n"), b.MarshalRESP())
+		reader := b.RESPReader()
+		data, err := io.ReadAll(reader)
+		require.NoError(t, err)
+		require.Equal(t, "$5\r\nhello\r\n", string(data))
 	})
 
 	t.Run("Empty string", func(t *testing.T) {
 		b := BulkString("")
-		require.Equal(t, []byte("$0\r\n\r\n"), b.MarshalRESP())
+		reader := b.RESPReader()
+		data, err := io.ReadAll(reader)
+		require.NoError(t, err)
+		require.Equal(t, "$0\r\n\r\n", string(data))
 	})
 }
 
-func TestInteger_MarshalRESP(t *testing.T) {
+func TestInteger_Reader(t *testing.T) {
 	i := Integer(1000)
-	require.Equal(t, []byte(":1000\r\n"), i.MarshalRESP())
+	reader := i.RESPReader()
+	data, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	require.Equal(t, ":1000\r\n", string(data))
 }
 
-func TestNull_MarshalRESP(t *testing.T) {
+func TestNull_Reader(t *testing.T) {
 	n := Null{}
-	require.Equal(t, []byte("$-1\r\n"), n.MarshalRESP())
+	reader := n.RESPReader()
+	data, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	require.Equal(t, "$-1\r\n", string(data))
 }
 
-func TestArray_MarshalRESP(t *testing.T) {
+func TestArray_Reader(t *testing.T) {
 	a := Array{
 		BulkString("hello"),
 		Integer(123),
 	}
-	expected := []byte("*2\r\n$5\r\nhello\r\n:123\r\n")
-	require.Equal(t, expected, a.MarshalRESP())
+	reader := a.RESPReader()
+	data, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	expected := "*2\r\n$5\r\nhello\r\n:123\r\n"
+	require.Equal(t, expected, string(data))
 }

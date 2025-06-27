@@ -6,18 +6,18 @@ import (
 	"time"
 )
 
-func ParseGetArgs(args Array) (BinaryMarshaler, error) {
-	key, ok := args[1].(BinaryMarshaler)
+func ParseGetArgs(args Array) (Stringer, error) {
+	key, ok := args[1].(Stringer)
 	if !ok {
-		return nil, errors.New("key is not a binary marshaler")
+		return nil, errors.New("key is not a stringer")
 	}
 	return key, nil
 }
 
 func ParseSetArgs(args Array) (*SetArgs, error) {
-	key, ok := args[1].(BinaryMarshaler)
+	key, ok := args[1].(Stringer)
 	if !ok {
-		return nil, errors.New("key is not a binary marshaler")
+		return nil, errors.New("key is not a stringer")
 	}
 
 	value := args[2]
@@ -92,10 +92,10 @@ func ParseSetArgs(args Array) (*SetArgs, error) {
 	return parsedArgs, nil
 }
 
-func ParseDelArgs(args Array) ([]BinaryMarshaler, error) {
-	keys := make([]BinaryMarshaler, len(args)-1)
+func ParseDelArgs(args Array) ([]Stringer, error) {
+	keys := make([]Stringer, len(args)-1)
 	for i := 1; i < len(args); i++ {
-		key, ok := args[i].(BinaryMarshaler)
+		key, ok := args[i].(Stringer)
 		if !ok {
 			return nil, errors.New("key is not a binary marshaler")
 		}

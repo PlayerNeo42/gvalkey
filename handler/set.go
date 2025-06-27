@@ -4,7 +4,7 @@ import (
 	"github.com/PlayerNeo42/gvalkey/resp"
 )
 
-func (h *Handler) handleSet(args resp.Array) (resp.Marshaler, error) {
+func (h *Handler) handleSet(args resp.Array) (resp.Payload, error) {
 	parsedArgs, err := resp.ParseSetArgs(args)
 	if err != nil {
 		return nil, err
@@ -20,7 +20,7 @@ func (h *Handler) handleSet(args resp.Array) (resp.Marshaler, error) {
 
 		// marshal the old value for the response safely.
 		switch val := oldValue.(type) {
-		case resp.Marshaler:
+		case resp.Payload:
 			return val, nil
 		default:
 			// this case prevents a panic if the store returns an unexpected type.

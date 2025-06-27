@@ -42,14 +42,14 @@ func (h *Handler) Serve(conn net.Conn) {
 				return
 			}
 			h.logger.Error("parse command failed", "error", err)
-			_, err = conn.Write(resp.NewSimpleError(err.Error()).MarshalRESP())
-			if err != nil {
+			errPayload := resp.NewSimpleError(err.Error())
+			if _, err = io.Copy(conn, errPayload.RESPReader()); err != nil {
 				h.logger.Error("write error message to client failed", "error", err)
 			}
 			return
 		}
 
-		var response resp.Marshaler
+		var response resp.Payload
 		var commandErr error
 
 		switch v := value.(type) {
@@ -65,9 +65,9 @@ func (h *Handler) Serve(conn net.Conn) {
 			response = resp.NewSimpleError(commandErr.Error())
 		}
 
-		h.logger.Debug("writing response", "remote_addr", conn.RemoteAddr().String(), "response", response, "payload", fmt.Sprintf("%q", response.MarshalRESP()))
-		_, err = conn.Write(response.MarshalRESP())
-		if err != nil {
+		h.logger.Debug("writing response", "remote_addr", conn.RemoteAddr().String(), "response", response, "payload", fmt.Sprintf("%q", response.RESPReader()))
+
+		if _, err = io.Copy(conn, response.RESPReader()); err != nil {
 			h.logger.Error("write ok message to client failed", "error", err)
 		}
 	}

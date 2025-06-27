@@ -6,13 +6,13 @@ import (
 	"github.com/PlayerNeo42/gvalkey/resp"
 )
 
-func (h *Handler) handleGet(args resp.Array) (resp.Marshaler, error) {
+func (h *Handler) handleGet(args resp.Array) (resp.Payload, error) {
 	key, err := resp.ParseGetArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	value, ok := h.store.Get(string(key.MarshalBinary()))
+	value, ok := h.store.Get(key.String())
 	if !ok {
 		return resp.NULL, nil
 	}
@@ -21,7 +21,7 @@ func (h *Handler) handleGet(args resp.Array) (resp.Marshaler, error) {
 		return resp.NULL, nil
 	}
 
-	if val, ok := value.(resp.Marshaler); ok {
+	if val, ok := value.(resp.Payload); ok {
 		return val, nil
 	}
 
