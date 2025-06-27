@@ -1,3 +1,4 @@
+// Package naive implements a thread-safe in-memory key-value store using sync.Map.
 package naive
 
 import (
@@ -12,14 +13,14 @@ var _ store.Store = (*NaiveStore)(nil)
 
 type naiveStoreItem struct {
 	value      any
-	expiration int64 // expiration timestamp, 0 means never expire
+	expiration time.Time // expiration timestamp, 0 means never expire
 }
 
 func (item *naiveStoreItem) isExpired() bool {
-	if item.expiration == 0 {
+	if item.expiration.IsZero() {
 		return false
 	}
-	return time.Now().UnixMilli() > item.expiration
+	return time.Now().After(item.expiration)
 }
 
 // NaiveStore is a thread-safe in-memory key-value store implementation using Go's sync.Map.
@@ -39,21 +40,21 @@ func NewNaiveStore() *NaiveStore {
 }
 
 func (s *NaiveStore) Set(args resp.SetArgs) (any, bool) {
-	key := args.Key.MarshalBinary()
+	key := string(args.Key.MarshalBinary())
 
 	// load the existing item first to check its status.
-	existing, loaded := s.store.Load(string(key))
+	existing, exists := s.store.Load(key)
 
 	var oldItem *naiveStoreItem
-	if loaded {
+	if exists {
 		var ok bool
 		oldItem, ok = existing.(*naiveStoreItem)
 		if !ok {
-			// this should not happen in normal operation, but as a safeguard, treat it as not loaded.
-			loaded = false
+			// this should not happen in normal operation, but as a safeguard, treat it as not exists.
+			exists = false
 		} else if oldItem.isExpired() {
 			// treat expired keys as not existing for the purpose of nx/xx logic.
-			loaded = false
+			exists = false
 		}
 	}
 
@@ -61,9 +62,9 @@ func (s *NaiveStore) Set(args resp.SetArgs) (any, bool) {
 	// we should not set the key if:
 	// 1. the key exists and NX is true, or
 	// 2. the key doesn't exist and XX is true.
-	shouldNotSet := (args.NX && loaded) || (args.XX && !loaded)
+	shouldNotSet := (args.NX && exists) || (args.XX && !exists)
 	if shouldNotSet {
-		if args.Get && loaded {
+		if args.Get && exists {
 			// for NX, if key exists, we return the old value.
 			return oldItem.value, true
 		}
@@ -72,26 +73,18 @@ func (s *NaiveStore) Set(args resp.SetArgs) (any, bool) {
 		return nil, false
 	}
 
-	// if we proceed, it means we will perform a set operation.
-	var expiration int64
-	if args.Expire > 0 {
-		// convert relative time to absolute timestamp
-		expiration = time.Now().UnixMilli() + args.Expire
-	}
 	newItem := &naiveStoreItem{
 		value:      args.Value,
-		expiration: expiration,
+		expiration: args.ExpireAt,
 	}
 	s.store.Store(string(key), newItem)
 
-	if args.Get {
-		if loaded { // 'loaded' is true only if the key existed and was not expired.
-			return oldItem.value, true
-		}
-		// if key didn't exist or was expired, there's no old value to return, but the set was successful.
-		return nil, true
+	if args.Get && exists {
+		// 'exists' is true only if the key existed and was not expired.
+		return oldItem.value, true
 	}
 
+	// if key didn't exist or was expired, there's no old value to return, but the set was successful.
 	return nil, true
 }
 
