@@ -27,3 +27,7 @@ lint: fmt
 
 .PHONY: check
 check: lint test
+
+.PHONY: bench
+bench:
+	redis-benchmark -n 100000 -c 100 -t set,get

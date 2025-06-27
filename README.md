@@ -130,17 +130,25 @@ GValkey can be configured using environment variables. All configuration options
 
 ## 🛠️ Development
 
+### Code Formatting && Linting
+
+```bash
+golangci-lint fmt 
+golangci-lint run --fix
+```
+
 ### Running Tests
 
 ```bash
 go test ./...
 ```
 
-### Code Formatting && Linting
+> Or you can do `make check` for both steps.
+
+### Benchmark
 
 ```bash
-golangci-lint fmt 
-golangci-lint run --fix
+make bench
 ```
 
 ## 📄 License
