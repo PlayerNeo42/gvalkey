@@ -77,7 +77,7 @@ func (s *NaiveStore) Set(args resp.SetArgs) (any, bool) {
 		value:      args.Value,
 		expiration: args.ExpireAt,
 	}
-	s.store.Store(string(key), newItem)
+	s.store.Store(key, newItem)
 
 	if args.Get && exists {
 		// 'exists' is true only if the key existed and was not expired.
